@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Personal Blog</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body>
+    <div class="container">
+      <h1>Personal Blog</h1>
+
+      <h2>Create a New Post</h2>
+      <form id="post-form">
+        <input
+          type="text"
+          id="name"
+          name="name"
+          placeholder="Your Name"
+          required
+        />
+        <input
+          type="text"
+          id="title"
+          name="title"
+          placeholder="Post Title"
+          required
+        />
+        <textarea
+          id="content"
+          name="content"
+          rows="4"
+          placeholder="Write something..."
+          required
+        ></textarea>
+        <button type="submit">Submit Post</button>
+      </form>
+
+      <h2>Recent Posts</h2>
+      <div id="posts"></div>
+    </div>
+
+    <div
+      class="fb-like"
+      data-href="https://developers.facebook.com/docs/plugins/"
+      data-width=""
+      data-layout=""
+      data-action=""
+      data-size=""
+      data-share="true"
+    ></div>
+
+    <div
+      class="fb-comments"
+      data-href="https://developers.facebook.com/docs/plugins/comments#configurator"
+      data-width=""
+      data-numposts="5"
+    ></div>
+
+    <div id="fb-root"></div>
+    <script
+      async
+      defer
+      crossorigin="anonymous"
+      src="https://connect.facebook.net/vi_VN/sdk.js#xfbml=1&version=v22.0&appId=630206876051668"
+    ></script>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", loadPosts);
+
+      document
+        .getElementById("post-form")
+        .addEventListener("submit", function (event) {
+          event.preventDefault();
+
+          const formData = new FormData(this);
+          fetch("index.php", {
+            method: "POST",
+            body: formData,
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              alert(data.message || "Post added successfully!");
+              loadPosts();
+              this.reset();
+            })
+            .catch((error) => {
+              console.error("Error:", error);
+              alert("An error occurred while submitting your post.");
+            });
+        });
+
+      function loadPosts() {
+        fetch("index.php?get_posts=true")
+          .then((response) => response.json())
+          .then((posts) => {
+            const postsSection = document.getElementById("posts");
+            postsSection.innerHTML = "";
+            posts.forEach((post) => {
+              const postElement = document.createElement("div");
+              postElement.classList.add("post");
+              postElement.innerHTML = `
+                        <h3>${post.title}</h3>
+                        <p><strong>${post.name}</strong> | ${post.created_at}</p>
+                        <p>${post.content}</p>
+                        <div class="actions">
+                            <button onclick="editPost(${post.id}, '${post.title}', '${post.content}')">Edit</button>
+                            <button onclick="deletePost(${post.id})">Delete</button>
+                        </div>
+                    `;
+              postsSection.appendChild(postElement);
+            });
+          })
+          .catch((error) => console.error("Error:", error));
+      }
+
+      function deletePost(id) {
+        if (confirm("Are you sure you want to delete this post?")) {
+          fetch(`index.php?delete=${id}`)
+            .then((response) => response.json())
+            .then(() => {
+              alert("Post deleted successfully!");
+              loadPosts();
+            })
+            .catch((error) => console.error("Error:", error));
+        }
+      }
+
+      function editPost(id, oldTitle, oldContent) {
+        const newTitle = prompt("Edit title:", oldTitle);
+        const newContent = prompt("Edit content:", oldContent);
+
+        if (newTitle && newContent) {
+          fetch("index.php", {
+            method: "POST",
+            body: new URLSearchParams({
+              update: id,
+              title: newTitle,
+              content: newContent,
+            }),
+          })
+            .then((response) => response.json())
+            .then(() => {
+              alert("Post updated successfully!");
+              loadPosts();
+            })
+            .catch((error) => console.error("Error:", error));
+        }
+      }
+    </script>
+  </body>
+</html>
